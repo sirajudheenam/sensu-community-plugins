@@ -1,0 +1,54 @@
+* Pantheon Sensu Plugin Extensions
+
+Here are some extenstions to the existing sensu handlers.  These are a little
+rough, and somebody with ruby-fu could clean them up, although I'm not sure if
+these changes should actually be merged in.
+
+I've come to see Sensu as a DevOps tools, in the sense that it is really a
+developement project rather than a monitoring solution (some assembly required), 
+i.e. it is closer to RabbitMQ than Nagios, it is a framework not a monitoring 
+system, just as CakePHP a web framework and Drupal is a Content Management 
+System. (of course, it should be easy to get Sensu running in some fashion).
+
+So, while some of these ideas might make it into upstreams, I think this is 
+actually a great example that Sensu plugins/handlers can reap the benefits of
+OOP and 4th Generation language without needing an SDK, minimizing feature bloat,
+side-stepping the PITA of too much opensource upstream changes, etc.
+
+This could be an entirely self-contained extension to Sensu.
+
+* Gimme some structure
+
+As I think Jordan Sissel said about syslog "it's like somebody took a dump on
+port 514".  It's great that Sensu plugins can spit out some text, for backwards 
+compatibility with Nagios or simple shell scripts, but more often than not I'm
+gonna want semi-structured data.  
+
+This is already supported for the Sensu::Plugin::Metric::CLI::JSON class, but
+this isn't just useful for metrics. In fact, it's useful for pretty much
+everything that can send semi-structured data (except aforementioned legacy stuff).
+
+Semi-structure data is super flexible, yet allows for rich domain-specific
+messages that can be generated at the handler side.  So checks send back info, 
+and the handlers do stuff with it (rather than the check generating the message).
+For example, I know that I always want my IRC messages to have a URL, since I'm
+already sitting at my PC, whereas PagerDuty checks need a consise subject so
+that I can read it via SMS.
+
+* Subclass-ready checks
+
+I already know I'm going to hit a dozen different web services, get back JSON,
+parse, and alert.  Thus, it's important that I can write a quick HTTP check
+subclass, and handle the response.  This graphite handler is ~40 LOC, which is 
+awesome.  
+
+So maybe we abstract some of the 'community' plugins and put them in sensu-plugin,
+so that we have a check-http and check-command plugins (for hitting a http service
+and running a shell command) that are easily subclassable. Install the sensu-plugin
+gem, subclass + 40 LOC, and you're good (without worrying about include paths, etc).
+
+* Some details
+
+While I'm ranting, it'd be great if all community plugins had both short and long
+options, for clarity.  Also, there are some fixes needed to support query strings
+in the http check.

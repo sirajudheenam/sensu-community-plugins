@@ -1,0 +1,80 @@
+* Pantheon Sensu Handler Extensions
+
+Here are some extenstions to the existing sensu handlers.  These are a little
+rough, and somebody with ruby-fu could clean them up, although I'm not sure if
+these changes should actually be merged in.
+
+I've come to see Sensu as a DevOps tools, in the sense that it is really a
+developement project rather than a monitoring solution (some assembly required), 
+i.e. it is closer to RabbitMQ than Nagios, it is a framework not a monitoring 
+system, just as CakePHP a web framework and Drupal is a Content Management 
+System. (of course, it should be easy to get Sensu running in some fashion).
+
+So, while some of these ideas might make it into upstreams, I think this is 
+actually a great example that Sensu plugins/handlers can reap the benefits of
+OOP and 4th Generation language without needing an SDK, minimizing feature bloat,
+side-stepping the PITA of too much opensource upstream changes, etc.
+
+This could be an entirely self-contained extension to Sensu.
+
+* Config Merging
+
+I've updated the configuration code to merge in per handler, per-check, and per-
+check-per-handler settings.  This makes the handlers configurable on multiple 
+levels; similar to how plugins are parameterized via CLI options, handlers
+can now be reused and parameterized via hierarchical yet clear JSON configs.
+
+    {
+      "handlers": {
+        "irc": {
+          "type": "pipe",
+          "command": "/etc/sensu/handlers/pantheon_irc.rb",
+          "irc_server": "irc://myops@irc.freenode.net:6667/#my-ops",
+          "irc_ssl": false
+        }
+      },
+      "checks": {
+        "some_check_with_defaults": {
+          "handler": "irc",
+          "command": "/etc/sensu/plugins/check-port.rb -p 8443",
+          "interval": 60,
+          "subscribers": [ "yggdrasil" ]
+        },
+        "check_with_per_check_overrides": {
+          "handler": "irc",
+          "command": "/etc/sensu/plugins/check-port.rb -p 8443",
+          "interval": 60,
+          "subscribers": [ "yggdrasil" ],
+          "handle_warnings": false,
+          "max_occurrences": 5
+        },
+        "check_with_per_check_per_handler_overrides": {
+          "handler": "irc",
+          "command": "/etc/sensu/plugins/check-port.rb -p 8443",
+          "interval": 60,
+          "subscribers": [ "yggdrasil" ],
+          "irc": {
+            "max_occurrences": 2
+            "irc_server": "irc://myops@irc.freenode.net:6667/#different-ops",
+           }
+        }
+      }
+    }
+
+* handle_warnings
+
+Using the config-merging, it is now easy to specify whether a handler should
+alert (handle) warnings, or just critical events.  It defaults to true, but can 
+be overriiden at the check, handler, or check-handler level.
+
+* max_occurrences
+
+Defaulting to 0 (i.e. even the first occurance should be handled), this setting
+determines how many 'occurances' must have occured before this handler actually
+alerts about the event.
+
+* extending
+
+These are two use-cases I thought of as a POC, but it is trivial to add more
+(check the history for consequtive failures), hit the API to try and determine
+nested-checks and see if any parent checks are triggered, etc.
